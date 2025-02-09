@@ -4,13 +4,13 @@ import torch.nn as nn
 from torch.nn import functional as F
 
 # hyperparams
-batch_size = 32
-block_size = 8
-learning_rate = 1e-2
-max_iters = 3000
-eval_interval = 300
-eval_iters = 200
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
+BATCH_SIZE = 32
+BLOCK_SIZE = 8
+LEARNING_RATE = 1e-2
+MAX_ITERS = 3000
+EVAL_INTERVAL = 300
+EVAL_ITERS = 200
+DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 #reproducibility
 torch.manual_seed(1337)
@@ -59,9 +59,9 @@ class Data:
         """
         assert(split in {"train", "val"})
         fold = self.train_data if split == "train" else self.val_data
-        idxs = torch.randint(len(fold) - block_size, (batch_size,))
-        x = torch.stack([fold[idx:idx+block_size] for idx in idxs])
-        y = torch.stack([fold[idx+1:idx+block_size+1] for idx in idxs])
+        idxs = torch.randint(len(fold) - BLOCK_SIZE, (BATCH_SIZE),))
+        x = torch.stack([fold[idx:idx+BLOCK_SIZE] for idx in idxs])
+        y = torch.stack([fold[idx+1:idx+BLOCK_SIZE+1] for idx in idxs])
         return x, y
 
 # estimate loss
@@ -102,8 +102,8 @@ class BigramLanguageModel(nn.Module):
         return idx
 
 # train
-def train(model, data, iters=max_iters):
-    optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
+def train(model, data, iters=MAX_ITERS):
+    optimizer = torch.optim.AdamW(model.parameters(), lr=LEARNING_RATE)
     for step in range(iters):
         xb, yb = data.get_batch("train")
         logits, loss = model(xb, yb)
@@ -122,5 +122,5 @@ def generate(model, data, max_new_tokens=32):
 if __name__ == "__main__":
     data = Data("input.txt")
     model = BigramLanguageModel(vocab_size=data.get_vocab_size())
-    train(model, data, iters=max_iters)
+    train(model, data, iters=MAX_ITERS)
     generate(model, data)
