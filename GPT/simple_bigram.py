@@ -53,13 +53,13 @@ class Data:
     def get_vocab_size(self):
         return self.vocab_size
 
-    def get_batch(self, split: str) -> torch.tensor:
+    def get_batch(self, split: str, batch_size=BATCH_SIZE) -> torch.tensor:
         """
         gets a random batch from data, (T, B) shape
         """
         assert(split in {"train", "val"})
         fold = self.train_data if split == "train" else self.val_data
-        idxs = torch.randint(len(fold) - BLOCK_SIZE, (BATCH_SIZE),))
+        idxs = torch.randint(len(fold) - BLOCK_SIZE, (batch_size,))
         x = torch.stack([fold[idx:idx+BLOCK_SIZE] for idx in idxs])
         y = torch.stack([fold[idx+1:idx+BLOCK_SIZE+1] for idx in idxs])
         return x, y
@@ -114,13 +114,13 @@ def train(model, data, iters=MAX_ITERS):
     print("train loss: ", loss.item())
 
 # generate
-def generate(model, data, max_new_tokens=32):
-    xb, yb = data.get_batch("train")
+def generate(model, data, max_new_tokens=32, batch_size=BATCH_SIZE):
+    xb, yb = data.get_batch("train", batch_size=batch_size)
     res = model.generate(xb, max_new_tokens)
-    [print(f"idx: {idx}, output:\n{data.decode(res[idx].tolist())}") for idx in range(res.shape[0])]
+    [print(f"batch idx: {idx}, output:\n{data.decode(res[idx].tolist())}") for idx in range(res.shape[0])]
 
 if __name__ == "__main__":
     data = Data("input.txt")
     model = BigramLanguageModel(vocab_size=data.get_vocab_size())
     train(model, data, iters=MAX_ITERS)
-    generate(model, data)
+    generate(model, data, batch_size=1)
