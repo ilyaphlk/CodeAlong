@@ -65,6 +65,20 @@ class Data:
         return x, y
 
 # estimate loss
+@torch.no_grad()
+def estimate_loss(model, data):
+    out = dict()
+    model.eval()
+    for split in ["train", "val"]:
+        losses = torch.zeros(EVAL_ITERS)
+        for k in range(EVAL_ITERS):
+            X, Y = data.get_batch(split)
+            logits, loss = model(X, Y)
+            losses[k] = loss.item()
+        out[split] = losses.mean()
+    model.train()
+    return out
+
 
 # model
 class BigramLanguageModel(nn.Module):
@@ -105,6 +119,10 @@ class BigramLanguageModel(nn.Module):
 def train(model, data, iters=MAX_ITERS):
     optimizer = torch.optim.AdamW(model.parameters(), lr=LEARNING_RATE)
     for step in range(iters):
+        if step % EVAL_INTERVAL == 0 or step == iters - 1:
+            losses = estimate_loss(model, data)
+            print(f"step {step}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}")
+
         xb, yb = data.get_batch("train")
         logits, loss = model(xb, yb)
         optimizer.zero_grad(set_to_none=True)
