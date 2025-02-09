@@ -6,7 +6,6 @@ from torch.nn import functional as F
 # hyperparams
 batch_size = 32
 block_size = 8
-vocab_size = None
 learning_rate = 1e-2
 max_iters = 3000
 eval_interval = 300
@@ -17,37 +16,53 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 torch.manual_seed(1337)
 
 # data processing
-with open("input.txt", "r") as f:
-    text = f.read()
+class Data:
+    def __init__(self, filename):
+        self.read_data(filename)
+        self.make_mapping()
+        self.make_folds(self.text)
 
-unique_chars = sorted(list(set(text)))
-stoi = {c: idx for idx, c in enumerate(unique_chars)}
-itos = {idx: c for idx, c in enumerate(unique_chars)}
-vocab_size = len(unique_chars)
+    def read_data(self, filename):
+        with open(filename, "r") as f:
+            self.text = f.read()
 
-def encode(s):
-    return list(map(lambda c: stoi[c], s))
+    def make_mapping(self):
+        unique_chars = sorted(list(set(self.text)))
+        self.stoi = {c: idx for idx, c in enumerate(unique_chars)}
+        self.itos = {idx: c for idx, c in enumerate(unique_chars)}
+        self.vocab_size = len(unique_chars)
 
-def decode(ids):
-    return "".join(list(map(lambda idx: itos[idx], ids)))
+    def encode(self, s: str):
+        return list(map(lambda c: self.stoi[c], s))
 
-data = torch.tensor(encode(text), dtype=torch.long)
-train_size = int(len(data) * 0.9)
-train_data = data[:train_size]
-val_data = data[train_size:]
+    def decode(self, ids: list[int]):
+        return "".join(list(map(lambda idx: self.itos[idx], ids)))
 
+    def make_folds(self, text: str):
+        data = torch.tensor(self.encode(text), dtype=torch.long)
+        train_size = int(len(data) * 0.9)
+        self.train_data = data[:train_size]
+        self.val_data = data[train_size:]
 
-# data loading
-def get_batch(split: str) -> torch.tensor:
-    """
-    gets a random batch from data, (T, B) shape
-    """
-    assert(split in {"train", "val"})
-    fold = train_data if split == "train" else val_data
-    idxs = torch.randint(len(fold) - block_size, (batch_size,))
-    x = torch.stack([fold[idx:idx+block_size] for idx in idxs])
-    y = torch.stack([fold[idx+1:idx+block_size+1] for idx in idxs])
-    return x, y
+    def get_train_fold(self):
+        return self.train_data
+
+    def get_test_fold(self):
+        return self.test_data
+
+    def get_vocab_size(self):
+        return self.vocab_size
+
+    def get_batch(self, split: str) -> torch.tensor:
+        """
+        gets a random batch from data, (T, B) shape
+        """
+        assert(split in {"train", "val"})
+        fold = self.train_data if split == "train" else self.val_data
+        idxs = torch.randint(len(fold) - block_size, (batch_size,))
+        x = torch.stack([fold[idx:idx+block_size] for idx in idxs])
+        y = torch.stack([fold[idx+1:idx+block_size+1] for idx in idxs])
+        return x, y
 
 # estimate loss
 
@@ -87,19 +102,25 @@ class BigramLanguageModel(nn.Module):
         return idx
 
 # train
-m = BigramLanguageModel(vocab_size=vocab_size)
-optimizer = torch.optim.AdamW(m.parameters(), lr=learning_rate)
-for step in range(max_iters):
-    xb, yb = get_batch("train")
-    logits, loss = m(xb, yb)
-    optimizer.zero_grad(set_to_none=True)
-    loss.backward()
-    optimizer.step()
+def train(model, data, iters=max_iters):
+    optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
+    for step in range(iters):
+        xb, yb = data.get_batch("train")
+        logits, loss = model(xb, yb)
+        optimizer.zero_grad(set_to_none=True)
+        loss.backward()
+        optimizer.step()
 
-print("train loss: ", loss.item())
+    print("train loss: ", loss.item())
 
 # generate
-torch.manual_seed(1337)
-xb, yb = get_batch("train")
-res = m.generate(xb, max_new_tokens=32)
-[print(f"idx: {idx}, output:\n{decode(res[idx].tolist())}") for idx in range(res.shape[0])]
+def generate(model, data, max_new_tokens=32):
+    xb, yb = data.get_batch("train")
+    res = model.generate(xb, max_new_tokens)
+    [print(f"idx: {idx}, output:\n{data.decode(res[idx].tolist())}") for idx in range(res.shape[0])]
+
+if __name__ == "__main__":
+    data = Data("input.txt")
+    model = BigramLanguageModel(vocab_size=data.get_vocab_size())
+    train(model, data, iters=max_iters)
+    generate(model, data)
