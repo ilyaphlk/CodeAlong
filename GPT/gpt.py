@@ -118,12 +118,15 @@ class MultiHeadAttention(nn.Module):
     def __init__(self, n_heads, embed_size, head_size):
         super().__init__()
         self.heads = nn.ModuleList([Head(embed_size, head_size) for n in range(n_heads)])
+        self.linear = nn.Linear(n_heads * head_size, embed_size)
+        self.relu = nn.ReLU()
 
     def forward(self, x):
         """
         concats every head
         """
-        return torch.cat([head(x) for head in self.heads], dim=-1)
+        cat = torch.cat([head(x) for head in self.heads], dim=-1)
+        return self.relu(self.linear(cat))
 
 
 class FeedForward(nn.Module):
@@ -147,7 +150,7 @@ class Block(nn.Module):
 
     def forward(self, x):
         heads_out = self.attention(x)
-        return self.ff(x)
+        return self.ff(heads_out)
 
 
 class GPTLanguageModel(nn.Module):
@@ -214,7 +217,7 @@ def generate(model, data, max_new_tokens=32, batch_size=BATCH_SIZE):
 
 def test_module():
     data = Data("input.txt")
-    model = GPTLanguageModel(vocab_size=data.get_vocab_size(), n_heads=5, embed_size=1, head_size=4)
+    model = GPTLanguageModel(vocab_size=data.get_vocab_size(), n_heads=8, embed_size=16, head_size=4)
     # x = torch.as_tensor(data.get_batch("train", batch_size=1)[0].unsqueeze(2), dtype=torch.float)
     x = data.get_batch("train", batch_size=1)[0]
     res = model.generate(x, max_new_tokens=32)
@@ -226,7 +229,7 @@ def test_module():
 
 def main():
     data = Data("input.txt")
-    model = GPTLanguageModel(vocab_size=data.get_vocab_size(), n_heads=5, embed_size=1, head_size=4)
+    model = GPTLanguageModel(vocab_size=data.get_vocab_size(), n_heads=8, embed_size=16, head_size=4)
     train(model, data, iters=MAX_ITERS)
     generate(model, data, batch_size=1)
 
