@@ -86,15 +86,28 @@ class Head(nn.Module):
     """
     one head of self-attention
     """
-    def __init__(self, head_size):
-        raise NotImplementedError()
+    def __init__(self, embed_size, head_size):
+        super().__init__()
+        self.query_embed = nn.Linear(embed_size, head_size, bias=False)
+        self.key_embed = nn.Linear(embed_size, head_size, bias=False)
+        self.value_embed = nn.Linear(embed_size, head_size, bias=False)
+        self.register_buffer('tril', torch.tril(torch.ones((BLOCK_SIZE, BLOCK_SIZE))))
 
     def forward(self, x):
         """
         input of shape (B, T, C)
         output of shape (B, T, head_size)
         """
-        raise NotImplementedError()
+        B, T, C = x.shape
+        #breakpoint()
+        queries = self.query_embed(x)
+        keys = self.key_embed(x)
+        values = self.value_embed(x)
+        weights = queries @ keys.permute(0, 2, 1)
+        weights = weights.masked_fill(self.tril[:T, :T] == 0, float('-inf'))
+        weights = F.softmax(weights, dim=-1)
+
+        return weights @ values
 
 
 class MultiHeadAttention(nn.Module):
@@ -166,8 +179,19 @@ def generate(model, data, max_new_tokens=32, batch_size=BATCH_SIZE):
     res = model.generate(xb, max_new_tokens)
     [print(f"batch idx: {idx}, output:\n{data.decode(res[idx].tolist())}") for idx in range(res.shape[0])]
 
-if __name__ == "__main__":
+
+def test_module():
+    data = Data("input.txt")
+    model = Head(embed_size=1, head_size=4)
+    return model(torch.as_tensor(data.get_batch("train", batch_size=1)[0].unsqueeze(2), dtype=torch.float))
+
+
+def main():
     data = Data("input.txt")
     model = BigramLanguageModel(vocab_size=data.get_vocab_size())
     train(model, data, iters=MAX_ITERS)
     generate(model, data, batch_size=1)
+
+
+if __name__ == "__main__":
+    print(test_module())
