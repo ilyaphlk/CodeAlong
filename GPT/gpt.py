@@ -151,14 +151,19 @@ class Block(nn.Module):
 
 
 class GPTLanguageModel():
-    def __init__(self, vocab_size, embed_size, n_heads):
-        raise NotImplementedError()
+    def __init__(self, vocab_size, embed_size, n_heads, head_size):
+        self.embedding = nn.Embedding(vocab_size, embed_size)
+        self.attention_block = Block(n_heads, embed_size, head_size)
+        self.head = nn.Linear(embed_size, vocab_size)
 
     def _init_weights(self, module):
         raise NotImplementedError()
 
     def forward(self, idx, targets=None):
-        raise NotImplementedError()
+        embeds = self.embedding(idx)
+        embeds = self.attention_block(embeds)
+        logits = self.head(embeds)
+        return logits
 
     def generate(self, idx, max_new_tokens):
         raise NotImplementedError()
@@ -189,10 +194,14 @@ def generate(model, data, max_new_tokens=32, batch_size=BATCH_SIZE):
 
 def test_module():
     data = Data("input.txt")
-    model = Block(n_heads=5, embed_size=1, head_size=4)
-    x = torch.as_tensor(data.get_batch("train", batch_size=1)[0].unsqueeze(2), dtype=torch.float)
-    
-    return model(x)
+    model = GPTLanguageModel(vocab_size=data.get_vocab_size(), n_heads=5, embed_size=1, head_size=4)
+    # x = torch.as_tensor(data.get_batch("train", batch_size=1)[0].unsqueeze(2), dtype=torch.float)
+    x = data.get_batch("train", batch_size=1)[0]
+    res = model.forward(x)
+
+    # breakpoint()
+    return res
+
 
 def main():
     data = Data("input.txt")
