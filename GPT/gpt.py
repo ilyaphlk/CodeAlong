@@ -2,6 +2,7 @@
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
+import typing as tp
 
 # hyperparams
 BATCH_SIZE = 32
@@ -35,7 +36,7 @@ class Data:
     def encode(self, s: str):
         return list(map(lambda c: self.stoi[c], s))
 
-    def decode(self, ids: list[int]):
+    def decode(self, ids: tp.List[int]):
         return "".join(list(map(lambda idx: self.itos[idx], ids)))
 
     def make_folds(self, text: str):
