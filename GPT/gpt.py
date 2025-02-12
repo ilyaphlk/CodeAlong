@@ -169,17 +169,24 @@ class GPTLanguageModel(nn.Module):
         embeds = self.embedding(idx)
         embeds = self.attention_block(embeds)
         logits = self.head(embeds)
-        return logits
+
+        loss = None
+        if targets is not None:
+            B, T, C = logits.shape
+            loss = F.cross_entropy(logits.view(B * T, C), targets.view(B * T))
+
+        return logits, loss
 
     def generate(self, idx, max_new_tokens):
         for i in range(max_new_tokens):
-            logits = self.forward(idx[:,-BLOCK_SIZE:,])
+            logits, _ = self.forward(idx[:,-BLOCK_SIZE:,])
+            #breakpoint()
             last_t = logits[:, -1, :]
             probs = F.softmax(last_t, dim=-1)
             idx_next = torch.multinomial(probs, 1)
             #breakpoint()
             idx = torch.cat([idx, idx_next], dim=-1)
-        return idx
+        return idx, _
 
 
 # train
@@ -201,7 +208,7 @@ def train(model, data, iters=MAX_ITERS):
 # generate
 def generate(model, data, max_new_tokens=32, batch_size=BATCH_SIZE):
     xb, yb = data.get_batch("train", batch_size=batch_size)
-    res = model.generate(xb, max_new_tokens)
+    res, _ = model.generate(xb, max_new_tokens)
     [print(f"batch idx: {idx}, output:\n{data.decode(res[idx].tolist())}") for idx in range(res.shape[0])]
 
 
