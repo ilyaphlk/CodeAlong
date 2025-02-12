@@ -127,10 +127,10 @@ class MultiHeadAttention(nn.Module):
 
 
 class FeedForward(nn.Module):
-    def __init__(self, model_dim):
+    def __init__(self, embed_size):
         raise NotImplementedError()
 
-    def forward(self, input):
+    def forward(self, x):
         """
         a linear layer with nonlinearity after
         """
@@ -138,7 +138,7 @@ class FeedForward(nn.Module):
 
 
 class Block(nn.Module):
-    def __init__(self, model_dim, n_heads):
+    def __init__(self, embed_size, n_heads):
         raise NotImplementedError()
 
     def forward(self, input):
@@ -146,7 +146,7 @@ class Block(nn.Module):
 
 
 class GPTLanguageModel():
-    def __init__(self, vocab_size, model_dim, n_heads):
+    def __init__(self, vocab_size, embed_size, n_heads):
         raise NotImplementedError()
 
     def _init_weights(self, module):
