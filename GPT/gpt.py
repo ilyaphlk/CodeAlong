@@ -166,7 +166,14 @@ class GPTLanguageModel():
         return logits
 
     def generate(self, idx, max_new_tokens):
-        raise NotImplementedError()
+        for i in range(max_new_tokens):
+            logits = self.forward(idx[:,-BLOCK_SIZE:,])
+            last_t = logits[:, -1, :]
+            probs = F.softmax(last_t, dim=-1)
+            idx_next = torch.multinomial(probs, 1)
+            #breakpoint()
+            idx = torch.cat([idx, idx_next], dim=-1)
+        return idx
 
 
 # train
@@ -197,15 +204,16 @@ def test_module():
     model = GPTLanguageModel(vocab_size=data.get_vocab_size(), n_heads=5, embed_size=1, head_size=4)
     # x = torch.as_tensor(data.get_batch("train", batch_size=1)[0].unsqueeze(2), dtype=torch.float)
     x = data.get_batch("train", batch_size=1)[0]
-    res = model.forward(x)
+    res = model.generate(x, max_new_tokens=32)
+    res_decoded = data.decode(res[0].tolist())
 
     # breakpoint()
-    return res
+    return res_decoded
 
 
 def main():
     data = Data("input.txt")
-    model = BigramLanguageModel(vocab_size=data.get_vocab_size())
+    model = GPTLanguageModel(vocab_size=data.get_vocab_size(), n_heads=5, embed_size=1, head_size=4)
     train(model, data, iters=MAX_ITERS)
     generate(model, data, batch_size=1)
 
