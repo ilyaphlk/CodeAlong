@@ -150,14 +150,20 @@ class Block(nn.Module):
         return self.ff(x)
 
 
-class GPTLanguageModel():
+class GPTLanguageModel(nn.Module):
     def __init__(self, vocab_size, embed_size, n_heads, head_size):
+        super().__init__()
         self.embedding = nn.Embedding(vocab_size, embed_size)
         self.attention_block = Block(n_heads, embed_size, head_size)
         self.head = nn.Linear(embed_size, vocab_size)
 
     def _init_weights(self, module):
-        raise NotImplementedError()
+        if isinstance(module, nn.Linear):
+            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
+            if module.bias is not None:
+                torch.nn.init.zeros_(module.bias)
+        elif isinstance(module, nn.Embedding):
+            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
 
     def forward(self, idx, targets=None):
         embeds = self.embedding(idx)
@@ -219,4 +225,5 @@ def main():
 
 
 if __name__ == "__main__":
-    print(test_module())
+    #print(test_module())
+    main()
