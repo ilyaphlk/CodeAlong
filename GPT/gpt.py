@@ -115,14 +115,15 @@ class MultiHeadAttention(nn.Module):
     """
     multiple heads of self-attention in parallel
     """
-    def __init__(self, n_heads, head_size):
-        raise NotImplementedError()
+    def __init__(self, n_heads, embed_size, head_size):
+        super().__init__()
+        self.heads = nn.ModuleList([Head(embed_size, head_size) for n in range(n_heads)])
 
     def forward(self, x):
         """
         concats every head
         """
-        raise NotImplementedError()
+        return torch.cat([head(x) for head in self.heads], dim=-1)
 
 
 class FeedForward(nn.Module):
@@ -183,9 +184,10 @@ def generate(model, data, max_new_tokens=32, batch_size=BATCH_SIZE):
 
 def test_module():
     data = Data("input.txt")
-    model = Head(embed_size=1, head_size=4)
-    return model(torch.as_tensor(data.get_batch("train", batch_size=1)[0].unsqueeze(2), dtype=torch.float))
-
+    model = MultiHeadAttention(n_heads=5, embed_size=1, head_size=4)
+    x = torch.as_tensor(data.get_batch("train", batch_size=1)[0].unsqueeze(2), dtype=torch.float)
+    
+    return model(x)
 
 def main():
     data = Data("input.txt")
