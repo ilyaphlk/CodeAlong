@@ -128,6 +128,7 @@ class MultiHeadAttention(nn.Module):
 
 class FeedForward(nn.Module):
     def __init__(self, embed_size):
+        super().__init__()
         self.ff = nn.Linear(embed_size, embed_size)
         self.relu = nn.ReLU()
 
@@ -139,11 +140,14 @@ class FeedForward(nn.Module):
 
 
 class Block(nn.Module):
-    def __init__(self, embed_size, n_heads):
-        raise NotImplementedError()
+    def __init__(self, n_heads, embed_size, head_size):
+        super().__init__()
+        self.attention = MultiHeadAttention(n_heads, embed_size, head_size)
+        self.ff = FeedForward(embed_size)
 
-    def forward(self, input):
-        raise NotImplementedError()
+    def forward(self, x):
+        heads_out = self.attention(x)
+        return self.ff(x)
 
 
 class GPTLanguageModel():
@@ -185,7 +189,7 @@ def generate(model, data, max_new_tokens=32, batch_size=BATCH_SIZE):
 
 def test_module():
     data = Data("input.txt")
-    model = MultiHeadAttention(n_heads=5, embed_size=1, head_size=4)
+    model = Block(n_heads=5, embed_size=1, head_size=4)
     x = torch.as_tensor(data.get_batch("train", batch_size=1)[0].unsqueeze(2), dtype=torch.float)
     
     return model(x)
