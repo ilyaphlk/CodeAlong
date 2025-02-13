@@ -152,10 +152,12 @@ class Block(nn.Module):
         super().__init__()
         self.attention = MultiHeadAttention(n_heads, embed_size, head_size)
         self.ff = FeedForward(embed_size)
+        self.ln1 = nn.LayerNorm(embed_size)
+        self.ln2 = nn.LayerNorm(embed_size)
 
     def forward(self, x):
-        heads_out = x + self.attention(x)
-        return x + self.ff(heads_out)
+        heads_out = x + self.attention(self.ln1(x))
+        return x + self.ff(self.ln2(heads_out))
 
 
 class GPTLanguageModel(nn.Module):
