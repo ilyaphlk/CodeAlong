@@ -158,6 +158,7 @@ class GPTLanguageModel(nn.Module):
     def __init__(self, vocab_size, embed_size, n_heads, head_size):
         super().__init__()
         self.embedding = nn.Embedding(vocab_size, embed_size)
+        self.position_embedding = nn.Embedding(BLOCK_SIZE, embed_size)
         self.attention_block = Block(n_heads, embed_size, head_size)
         self.head = nn.Linear(embed_size, vocab_size)
 
@@ -170,7 +171,8 @@ class GPTLanguageModel(nn.Module):
             torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
 
     def forward(self, idx, targets=None):
-        embeds = self.embedding(idx)
+        B, T = idx.shape
+        embeds = self.embedding(idx) + self.position_embedding(torch.arange(T))
         embeds = self.attention_block(embeds)
         logits = self.head(embeds)
 
