@@ -131,16 +131,20 @@ class MultiHeadAttention(nn.Module):
 
 
 class FeedForward(nn.Module):
-    def __init__(self, embed_size):
+    def __init__(self, embed_size, expand_factor=4):
         super().__init__()
-        self.ff = nn.Linear(embed_size, embed_size)
-        self.relu = nn.ReLU()
+        self.net = nn.Sequential(
+            nn.Linear(embed_size, embed_size * expand_factor),
+            nn.ReLU(),
+            nn.Linear(embed_size * expand_factor, embed_size),
+            # nn.ReLU(),  # todo: find out why
+        )
 
     def forward(self, x):
         """
         a linear layer with nonlinearity after
         """
-        return self.relu(self.ff(x))
+        return self.net(x)
 
 
 class Block(nn.Module):
