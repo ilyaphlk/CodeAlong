@@ -183,7 +183,7 @@ class GPTLanguageModel(nn.Module):
 
     def generate(self, idx, max_new_tokens):
         for i in range(max_new_tokens):
-            logits, _ = self.forward(idx[:,-BLOCK_SIZE:,])
+            logits, _ = self.forward(idx[:,-BLOCK_SIZE:])
             #breakpoint()
             last_t = logits[:, -1, :]
             probs = F.softmax(last_t, dim=-1)
