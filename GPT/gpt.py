@@ -154,8 +154,8 @@ class Block(nn.Module):
         self.ff = FeedForward(embed_size)
 
     def forward(self, x):
-        heads_out = self.attention(x)
-        return self.ff(heads_out)
+        heads_out = x + self.attention(x)
+        return x + self.ff(heads_out)
 
 
 class GPTLanguageModel(nn.Module):
