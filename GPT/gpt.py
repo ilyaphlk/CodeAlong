@@ -93,6 +93,7 @@ class Head(nn.Module):
         self.key_embed = nn.Linear(embed_size, head_size, bias=False)
         self.value_embed = nn.Linear(embed_size, head_size, bias=False)
         self.register_buffer('tril', torch.tril(torch.ones((BLOCK_SIZE, BLOCK_SIZE))))
+        self.embed_size = embed_size
 
     def forward(self, x):
         """
@@ -104,7 +105,7 @@ class Head(nn.Module):
         queries = self.query_embed(x)
         keys = self.key_embed(x)
         values = self.value_embed(x)
-        weights = queries @ keys.permute(0, 2, 1)
+        weights = queries @ keys.permute(0, 2, 1) / (self.embed_size ** 0.5)
         weights = weights.masked_fill(self.tril[:T, :T] == 0, float('-inf'))
         weights = F.softmax(weights, dim=-1)
 
