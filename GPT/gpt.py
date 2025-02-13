@@ -157,7 +157,7 @@ class Block(nn.Module):
 
     def forward(self, x):
         heads_out = x + self.attention(self.ln1(x))
-        return x + self.ff(self.ln2(heads_out))
+        return heads_out + self.ff(self.ln2(heads_out))
 
 
 class GPTLanguageModel(nn.Module):
